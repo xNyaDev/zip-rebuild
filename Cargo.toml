@@ -1,0 +1,29 @@
+[package]
+name = "zip-rebuild"
+version = "0.1.0"
+edition = "2021"
+authors = ["xNyaDev <xnyadev@pm.me>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/xNyaDev/zip-rebuild/"
+homepage = "https://github.com/xNyaDev/zip-rebuild/"
+
+# Dependencies marked as optional are used for the binaries
+# Currently it is not possible to specify them only for the specific binaries
+# See https://github.com/rust-lang/cargo/issues/1982
+[dependencies]
+blake3 = "1.5.0"
+clap = { version = "4.5.1", features = ["derive"], optional = true }
+preflate-bindings = "0.1.0"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = { version = "1.0.114", optional = true }
+thiserror = "1.0.57"
+zip = "0.6.6"
+
+[features]
+bin = ["dep:clap", "dep:serde_json"]
+default = ["bin"]
+
+[[bin]]
+name = "zip-rebuild-simple"
+path = "src/bin/simple.rs"
+required-features = ["bin"]
