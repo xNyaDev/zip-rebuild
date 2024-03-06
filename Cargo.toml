@@ -27,3 +27,8 @@ default = ["bin"]
 name = "zip-rebuild-simple"
 path = "src/bin/simple.rs"
 required-features = ["bin"]
+
+[[bin]]
+name = "zip-rebuild-advanced"
+path = "src/bin/advanced.rs"
+required-features = ["bin"]
