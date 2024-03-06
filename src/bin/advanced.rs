@@ -31,6 +31,17 @@ enum Commands {
         #[clap(long)]
         hash_names: bool,
     },
+    /// Dump multiple archives
+    DumpMultiple {
+        /// Input zip files matched using wildcards
+        input: String,
+        /// Dumped files output directory
+        #[clap(long, short)]
+        output_dir: PathBuf,
+        /// Rebuild info directory
+        #[clap(long, short)]
+        rebuild_info: PathBuf,
+    },
     /// Rebuild a single archive
     RebuildSingle {
         /// Rebuild info file to read
@@ -42,6 +53,17 @@ enum Commands {
         /// Output zip file, if not specified defaults to the original file name
         #[clap(long, short)]
         output: Option<PathBuf>,
+    },
+    /// Rebuild multiple archives
+    RebuildMultiple {
+        /// Rebuild info directory
+        rebuild_info: PathBuf,
+        /// Dumped files input directory
+        #[clap(long, short)]
+        input_dir: PathBuf,
+        /// Output directory
+        #[clap(long, short)]
+        output_dir: PathBuf,
     },
 }
 
@@ -66,6 +88,25 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             serde_json::to_writer(&mut output_file, &rebuild_info)?;
         }
+        Commands::DumpMultiple {
+            input,
+            output_dir,
+            rebuild_info,
+        } => {
+            fs::create_dir_all(&output_dir)?;
+            fs::create_dir_all(&rebuild_info)?;
+            for file in glob::glob(&input)?.flatten() {
+                let output_file_path = rebuild_info.join(format!(
+                    "{}.rebuild_info.json",
+                    file.file_name().unwrap().to_string_lossy()
+                ));
+                let mut output_file = File::create(output_file_path)?;
+
+                let rebuild_info = zip_rebuild::dump(file, output_dir.clone(), true)?;
+
+                serde_json::to_writer(&mut output_file, &rebuild_info)?;
+            }
+        }
         Commands::RebuildSingle {
             rebuild_info,
             input_dir,
@@ -80,6 +121,26 @@ fn main() -> Result<(), Box<dyn Error>> {
                 input_dir.unwrap_or_else(|| PathBuf::from(original_filename.file_stem().unwrap()));
 
             zip_rebuild::rebuild(rebuild_info, input_directory, output_file)?;
+        }
+        Commands::RebuildMultiple {
+            rebuild_info,
+            input_dir,
+            output_dir,
+        } => {
+            fs::create_dir_all(&output_dir)?;
+            for file in
+                glob::glob(&format!("{}/*.rebuild_info.json", rebuild_info.display()))?.flatten()
+            {
+                let rebuild_info: RebuildInfo = serde_json::from_reader(File::open(file)?)?;
+
+                let output_file = PathBuf::from(rebuild_info.original_filename.clone());
+
+                zip_rebuild::rebuild(
+                    rebuild_info,
+                    input_dir.clone(),
+                    output_dir.join(output_file),
+                )?;
+            }
         }
     }
     Ok(())

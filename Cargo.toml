@@ -13,6 +13,7 @@ homepage = "https://github.com/xNyaDev/zip-rebuild/"
 [dependencies]
 blake3 = "1.5.0"
 clap = { version = "4.5.1", features = ["derive"], optional = true }
+glob = { version = "0.3.1", optional = true }
 preflate-bindings = "0.1.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = { version = "1.0.114", optional = true }
@@ -20,7 +21,7 @@ thiserror = "1.0.57"
 zip = "0.6.6"
 
 [features]
-bin = ["dep:clap", "dep:serde_json"]
+bin = ["dep:clap", "dep:glob", "dep:serde_json"]
 default = ["bin"]
 
 [[bin]]
