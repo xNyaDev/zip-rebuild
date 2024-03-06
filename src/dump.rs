@@ -86,8 +86,11 @@ pub fn dump(
             if let Some(path) = output_file_path.parent() {
                 fs::create_dir_all(path)?;
             }
-            let mut output_file = File::create(output_file_path)?;
-            output_file.write_all(decode_result.preflate_diff.as_slice())?;
+
+            if !output_file_path.exists() {
+                let mut output_file = File::create(output_file_path)?;
+                output_file.write_all(decode_result.preflate_diff.as_slice())?;
+            }
 
             let file_name = if hash_names {
                 PathBuf::from(blake3::hash(decode_result.unpacked_output.as_slice()).to_string())
@@ -99,8 +102,10 @@ pub fn dump(
             if let Some(path) = output_file_path.parent() {
                 fs::create_dir_all(path)?;
             }
-            let mut output_file = File::create(output_file_path)?;
-            output_file.write_all(decode_result.unpacked_output.as_slice())?;
+            if !output_file_path.exists() {
+                let mut output_file = File::create(output_file_path)?;
+                output_file.write_all(decode_result.unpacked_output.as_slice())?;
+            }
 
             result.files.push(ReinsertInfo {
                 offset: file_to_dump.offset,
@@ -123,12 +128,14 @@ pub fn dump(
             };
 
             let output_file_path = output_directory.join(&file_name);
-            if let Some(path) = output_file_path.parent() {
-                fs::create_dir_all(path)?;
+            if !output_file_path.exists() {
+                if let Some(path) = output_file_path.parent() {
+                    fs::create_dir_all(path)?;
+                }
+                let mut output_file = File::create(output_file_path)?;
+                shared::copy_bytes(&mut file, &mut output_file, file_to_dump.size)?;
             }
-            let mut output_file = File::create(output_file_path)?;
 
-            shared::copy_bytes(&mut file, &mut output_file, file_to_dump.size)?;
             result.files.push(ReinsertInfo {
                 offset: file_to_dump.offset,
                 data: file_name.to_string_lossy().to_string(),
@@ -146,8 +153,12 @@ pub fn dump(
     if hash_names {
         result.headers = blake3::hash(headers.as_slice()).to_string();
     }
-    let mut headers_file = File::create(output_directory.join(&result.headers))?;
-    headers_file.write_all(headers.as_slice())?;
+
+    let headers_file_path = output_directory.join(&result.headers);
+    if !headers_file_path.exists() {
+        let mut headers_file = File::create(headers_file_path)?;
+        headers_file.write_all(headers.as_slice())?;
+    }
 
     Ok(result)
 }
