@@ -51,7 +51,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             let output_file = output.unwrap_or(original_filename.clone());
             let input_directory = original_filename.file_stem().unwrap();
 
-            zip_rebuild::rebuild(rebuild_info, PathBuf::from(input_directory), output_file)?;
+            zip_rebuild::rebuild(
+                rebuild_info,
+                PathBuf::from(input_directory),
+                output_file,
+                None,
+            )?;
         }
     }
     Ok(())

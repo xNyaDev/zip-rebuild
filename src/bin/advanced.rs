@@ -53,6 +53,12 @@ enum Commands {
         /// Output zip file, if not specified defaults to the original file name
         #[clap(long, short)]
         output: Option<PathBuf>,
+        /// Cache directory, if not specified, no caching is used
+        #[clap(long, short)]
+        cache_dir: Option<PathBuf>,
+        /// Do not delete the cache directory
+        #[clap(long, short)]
+        keep_cache: bool,
     },
     /// Rebuild multiple archives
     RebuildMultiple {
@@ -64,6 +70,12 @@ enum Commands {
         /// Output directory
         #[clap(long, short)]
         output_dir: PathBuf,
+        /// Cache directory, if not specified, no caching is used
+        #[clap(long, short)]
+        cache_dir: Option<PathBuf>,
+        /// Do not delete the cache directory
+        #[clap(long, short)]
+        keep_cache: bool,
     },
 }
 
@@ -111,6 +123,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             rebuild_info,
             input_dir,
             output,
+            cache_dir,
+            keep_cache,
         } => {
             let rebuild_info: RebuildInfo = serde_json::from_reader(File::open(rebuild_info)?)?;
 
@@ -120,13 +134,34 @@ fn main() -> Result<(), Box<dyn Error>> {
             let input_directory =
                 input_dir.unwrap_or_else(|| PathBuf::from(original_filename.file_stem().unwrap()));
 
-            zip_rebuild::rebuild(rebuild_info, input_directory, output_file)?;
+            if let Some(cache_dir) = &cache_dir {
+                fs::create_dir_all(cache_dir)?;
+            }
+
+            zip_rebuild::rebuild(
+                rebuild_info,
+                input_directory,
+                output_file,
+                cache_dir.clone(),
+            )?;
+
+            if !keep_cache {
+                if let Some(cache_dir) = cache_dir {
+                    fs::remove_dir_all(cache_dir)?;
+                }
+            }
         }
         Commands::RebuildMultiple {
             rebuild_info,
             input_dir,
             output_dir,
+            cache_dir,
+            keep_cache,
         } => {
+            if let Some(cache_dir) = &cache_dir {
+                fs::create_dir_all(cache_dir)?;
+            }
+
             fs::create_dir_all(&output_dir)?;
             for file in
                 glob::glob(&format!("{}/*.rebuild_info.json", rebuild_info.display()))?.flatten()
@@ -139,7 +174,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                     rebuild_info,
                     input_dir.clone(),
                     output_dir.join(output_file),
+                    cache_dir.clone(),
                 )?;
+            }
+
+            if !keep_cache {
+                if let Some(cache_dir) = &cache_dir {
+                    fs::remove_dir_all(cache_dir)?;
+                }
             }
         }
     }
