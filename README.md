@@ -55,3 +55,39 @@ original `silesia.zip`
 
 The drawback of this is that `zip-rebuild-simple` also has a size of its own and rebuilding the original zip can take
 a while. 
+
+## Usage of zip-rebuild-advanced to dump/rebuild multiple files
+
+Let's say you have 2 files with similar contents, `file1.zip` and `file2.zip`. 
+
+To dump them both into one folder, deduplicating the identical files, use `zip-rebuild-advanced`, like so:
+
+```
+original/file1.zip
+original/file2.zip
+data/
+rebuild_info/
+```
+
+To dump the files:
+
+```console
+$ zip-rebuild-advanced dump-multiple "original/*.zip" --output-dir data --rebuild-info rebuild_info
+```
+
+You will have the dumped data in `data/`, with the filename of each file being its BLAKE3 hash (no extension) and the
+rebuild JSONs in `rebuild_info/`.
+
+To rebuild the files:
+
+```console
+$ zip-rebuild-advanced rebuild-multiple --input-dir data --output-dir rebuilt_zips rebuild_info
+```
+
+This will result in a directory `rebuilt_zips` being created with rebuilt `file1.zip` and `file2.zip` inside.
+
+### Caching
+
+Because both zips can keep identical files, it makes sense to recompress them only once and cache the recompression
+results for better rebuilding speeds. To do that add `--cache-dir cache` to the rebuild command. `cache/` will be
+created, used as a cache then deleted. To keep it add `--keep-cache`.
